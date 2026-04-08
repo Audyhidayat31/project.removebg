@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Upload, ImageIcon, X, AlertCircle, Sparkles, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -15,6 +15,17 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"]
 export function HeroUploadSection({ onImageUpload, isProcessing }: HeroUploadSectionProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [particles, setParticles] = useState<{ width: number; height: number; left: number; top: number }[]>([])
+
+  useEffect(() => {
+    const newParticles = [...Array(6)].map(() => ({
+      width: Math.random() * 200 + 100,
+      height: Math.random() * 200 + 100,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+    }))
+    setParticles(newParticles)
+  }, [])
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -63,15 +74,15 @@ export function HeroUploadSection({ onImageUpload, isProcessing }: HeroUploadSec
     <section id="upload" className="hero-gradient min-h-screen flex items-center relative">
       {/* Floating particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(6)].map((_, i) => (
+        {particles.map((particle, i) => (
           <div
             key={i}
             className="absolute rounded-full bg-blue-500/10"
             style={{
-              width: `${Math.random() * 200 + 100}px`,
-              height: `${Math.random() * 200 + 100}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              width: `${particle.width}px`,
+              height: `${particle.height}px`,
+              left: `${particle.left}%`,
+              top: `${particle.top}%`,
               animation: `float-particle ${8 + i * 2}s ease-in-out infinite`,
               animationDelay: `${i * 1.5}s`,
             }}
