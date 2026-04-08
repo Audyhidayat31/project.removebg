@@ -39,7 +39,7 @@ export function FeaturesSection() {
           <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
             Mengapa Memilih{" "}
             <span className="bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
-              HapusBG?
+              RemovedBG?
             </span>
           </h2>
           <p className="text-slate-500 max-w-xl mx-auto text-lg">

@@ -7,7 +7,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'HapusBG - Hapus Background Gambar dalam Sekejap',
+  title: 'RemovedBG - Hapus Background Gambar dalam Sekejap',
   description: 'Hapus background gambar secara otomatis dengan teknologi AI. Gratis, cepat, dan mudah digunakan.',
   generator: 'v0.app',
   icons: {

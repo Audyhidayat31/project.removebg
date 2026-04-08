@@ -37,12 +37,12 @@ export function Footer() {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center transition-transform group-hover:scale-105">
                 <ImageIcon className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold text-white">HapusBG</span>
+              <span className="font-bold text-white">RemovedBG</span>
             </Link>
 
             {/* Copyright */}
             <p className="text-sm text-slate-500 flex items-center gap-1.5">
-              © {new Date().getFullYear()} HapusBG. Dibuat dengan
+              © {new Date().getFullYear()} RemovedBG. Dibuat dengan
               <Heart className="w-3.5 h-3.5 text-red-400 fill-red-400" />
               dan AI
             </p>

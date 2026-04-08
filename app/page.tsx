@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import { Navbar } from "@/components/navbar"
 import { HeroUploadSection } from "@/components/hero-upload-section"
 import { ResultSection } from "@/components/result-section"
 import { FeaturesSection } from "@/components/features-section"
 import { HowItWorksSection } from "@/components/how-it-works-section"
 import { Footer } from "@/components/footer"
+import { removeBackground, type RemovalProgress } from "@/lib/background-removal"
 
 export default function Home() {
   const [originalImage, setOriginalImage] = useState<string | null>(null)
@@ -14,6 +15,7 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [progress, setProgress] = useState<RemovalProgress | null>(null)
 
   const handleImageUpload = useCallback((file: File) => {
     const reader = new FileReader()
@@ -22,6 +24,7 @@ export default function Home() {
       setProcessedImage(null)
       setError(null)
       setUploadedFile(file)
+      setProgress(null)
     }
     reader.readAsDataURL(file)
   }, [])
@@ -31,31 +34,24 @@ export default function Home() {
 
     setIsProcessing(true)
     setError(null)
+    setProgress(null)
 
     try {
-      const formData = new FormData()
-      formData.append("image", uploadedFile)
-
-      const response = await fetch("/api/remove-background", {
-        method: "POST",
-        body: formData,
+      const result = await removeBackground(uploadedFile, (p) => {
+        setProgress(p)
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Gagal memproses gambar")
-      }
-
-      setProcessedImage(data.image)
-      
-      if (data.demo) {
-        setError(data.message)
-      }
+      setProcessedImage(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Terjadi kesalahan")
+      console.error("Background removal error:", err)
+      setError(
+        err instanceof Error
+          ? `Gagal memproses: ${err.message}`
+          : "Terjadi kesalahan saat memproses gambar"
+      )
     } finally {
       setIsProcessing(false)
+      setProgress(null)
     }
   }, [uploadedFile])
 
@@ -64,6 +60,7 @@ export default function Home() {
     setProcessedImage(null)
     setUploadedFile(null)
     setError(null)
+    setProgress(null)
   }, [])
 
   return (
@@ -85,13 +82,14 @@ export default function Home() {
             originalImage={originalImage}
             processedImage={processedImage}
             isProcessing={isProcessing}
+            progress={progress}
             onReset={handleReset}
             onRemoveBackground={handleRemoveBackground}
           />
           
           {error && (
             <div className="max-w-2xl mx-auto px-6 pb-8">
-              <div className="p-4 rounded-xl bg-muted border border-border text-sm text-muted-foreground text-center">
+              <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 text-center">
                 {error}
               </div>
             </div>
@@ -103,3 +101,4 @@ export default function Home() {
     </main>
   )
 }
+

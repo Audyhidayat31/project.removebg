@@ -4,11 +4,13 @@ import { useState } from "react"
 import Image from "next/image"
 import { Download, RefreshCw, ZoomIn, X, Layers } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { RemovalProgress } from "@/lib/background-removal"
 
 interface ResultSectionProps {
   originalImage: string | null
   processedImage: string | null
   isProcessing: boolean
+  progress: RemovalProgress | null
   onReset: () => void
   onRemoveBackground: () => void
 }
@@ -17,6 +19,7 @@ export function ResultSection({
   originalImage,
   processedImage,
   isProcessing,
+  progress,
   onReset,
   onRemoveBackground,
 }: ResultSectionProps) {
@@ -114,9 +117,37 @@ export function ResultSection({
                 </div>
                 <div className="aspect-square relative bg-[url('/checkerboard.svg')] bg-repeat bg-[length:20px_20px]">
                   {isProcessing ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
-                      <div className="w-14 h-14 rounded-full border-4 border-blue-500 border-t-transparent animate-spin mb-4" />
-                      <p className="text-sm text-slate-500 font-medium">Memproses gambar...</p>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm p-6">
+                      {/* Stage Icon */}
+                      <div className="relative mb-5">
+                        <div className="w-16 h-16 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-lg">
+                            {progress?.stage === "loading" && "🧠"}
+                            {progress?.stage === "processing" && "✨"}
+                            {progress?.stage === "refining" && "🔍"}
+                            {(!progress || progress.stage === "done") && "⚡"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="w-full max-w-xs mb-3">
+                        <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${progress?.progress ?? 0}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Progress Text */}
+                      <p className="text-sm text-slate-600 font-medium text-center">
+                        {progress?.message || "Mempersiapkan..."}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {progress?.progress ?? 0}% selesai
+                      </p>
                     </div>
                   ) : processedImage ? (
                     <>
