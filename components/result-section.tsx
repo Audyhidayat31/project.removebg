@@ -100,7 +100,7 @@ export function ResultSection({
                 <div className="absolute top-4 left-4 z-10 px-3 py-1.5 rounded-full bg-slate-900/70 backdrop-blur-sm text-xs font-medium text-white">
                   Sebelum
                 </div>
-                <div className="aspect-square relative bg-[url('/checkerboard.svg')] bg-repeat bg-[length:20px_20px]">
+                <div className="aspect-[4/3] md:aspect-square relative bg-[url('/checkerboard.svg')] bg-repeat bg-[length:20px_20px]">
                   <Image
                     src={originalImage}
                     alt="Gambar asli"
@@ -115,7 +115,7 @@ export function ResultSection({
                 <div className="absolute top-4 left-4 z-10 px-3 py-1.5 rounded-full bg-blue-600/90 backdrop-blur-sm text-xs font-medium text-white">
                   Sesudah
                 </div>
-                <div className="aspect-square relative bg-[url('/checkerboard.svg')] bg-repeat bg-[length:20px_20px]">
+                <div className="aspect-[4/3] md:aspect-square relative bg-[url('/checkerboard.svg')] bg-repeat bg-[length:20px_20px]">
                   {isProcessing ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm p-6">
                       {/* Stage Icon */}
@@ -175,7 +175,7 @@ export function ResultSection({
           ) : (
             /* Slider View */
             <div 
-              className="aspect-video relative cursor-ew-resize bg-[url('/checkerboard.svg')] bg-repeat bg-[length:20px_20px]"
+              className="aspect-[4/3] md:aspect-video relative cursor-ew-resize bg-[url('/checkerboard.svg')] bg-repeat bg-[length:20px_20px]"
               onClick={handleSliderChange}
               onMouseMove={(e) => e.buttons === 1 && handleSliderChange(e)}
             >
