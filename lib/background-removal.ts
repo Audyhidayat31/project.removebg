@@ -109,7 +109,7 @@ export async function removeBackground(
 
   try {
     const config: Config = {
-      model: "isnet_fp16", 
+      model: "isnet_fp16",
       // Force CPU on mobile to prevent WebGL artifacts/black images
       device: mobile ? "cpu" : "gpu",
       proxyToWorker: true,
