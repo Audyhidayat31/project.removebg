@@ -1,4 +1,4 @@
-import { removeBackground as imglyRemoveBackground } from "@imgly/background-removal";
+import { removeBackground as imglyRemoveBackground, Config } from "@imgly/background-removal";
 
 export interface RemovalProgress {
   stage: "loading" | "processing" | "refining" | "done";
@@ -9,19 +9,11 @@ export interface RemovalProgress {
 export type ProgressCallback = (progress: RemovalProgress) => void;
 
 /**
- * Detect if the current device is a mobile device.
+ * Preprocess image: Rezise to a maximum dimension for significantly faster processing.
+ * AI inference speed is quadratically related to image resolution.
+ * 1024px is a sweet spot for high quality and high speed.
  */
-const isMobile = () => {
-  if (typeof window === "undefined") return false;
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
-};
-
-/**
- * Downscale image if it exceeds maximum dimensions to prevent OOM on mobile.
- */
-async function resizeIfNeeded(imageSource: string | File | Blob, maxDim = 1024): Promise<Blob | string | File> {
+async function preprocessImage(imageSource: string | File | Blob, maxDim = 1024): Promise<Blob | File | string> {
   if (typeof window === "undefined") return imageSource;
 
   return new Promise((resolve) => {
@@ -29,6 +21,7 @@ async function resizeIfNeeded(imageSource: string | File | Blob, maxDim = 1024):
     const url = typeof imageSource === "string" ? imageSource : URL.createObjectURL(imageSource);
 
     img.onload = () => {
+      // If image is already within limits, return original (as Blob/File)
       if (img.width <= maxDim && img.height <= maxDim) {
         if (typeof imageSource !== "string") URL.revokeObjectURL(url);
         resolve(imageSource);
@@ -53,8 +46,14 @@ async function resizeIfNeeded(imageSource: string | File | Blob, maxDim = 1024):
 
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      ctx?.drawImage(img, 0, 0, width, height);
+      const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
+
+      if (ctx) {
+        // High quality scaling
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, width, height);
+      }
 
       canvas.toBlob((blob) => {
         if (typeof imageSource !== "string") URL.revokeObjectURL(url);
@@ -72,12 +71,13 @@ async function resizeIfNeeded(imageSource: string | File | Blob, maxDim = 1024):
 }
 
 /**
- * Remove background from an image.
+ * Optimized Background Removal
  * 
- * Improved Approach:
- * 1. Pre-processing: Downscale large images (especially on mobile) to prevent OOM.
- * 2. Mobile Detection: Force WASM/CPU backend on mobile to avoid WebGL precision issues.
- * 3. Client-side processing via @imgly/background-removal.
+ * Performance Enhancements:
+ * 1. Pre-resize: Reduces the number of pixels the AI needs to process.
+ * 2. Model: uses 'isnet_fp16' (Half-precision) which is ~2x faster than standard 'isnet'.
+ * 3. Acceleration: Forced 'gpu' (WebGPU/WebGL) for maximum throughput.
+ * 4. Multi-threading/SIMD: Handled by WASM SIMD and WebGPU backends.
  */
 export async function removeBackground(
   imageSource: string | File | Blob,
@@ -85,53 +85,74 @@ export async function removeBackground(
 ): Promise<string> {
   onProgress?.({
     stage: "loading",
-    progress: 0,
-    message: "Menyiapkan gambar...",
+    progress: 5,
+    message: "Mengoptimalkan gambar...",
   });
 
-  const mobile = isMobile();
-  // Downscale to 1024px on mobile, or 2048px on desktop to be safe
-  const maxDimension = mobile ? 1024 : 2048;
-  const processedSource = await resizeIfNeeded(imageSource, maxDimension);
+  // Pre-process: Resize to 1024px (High quality) or 800px (Faster)
+  // We use 1024 as default for a good balance.
+  const processedSource = await preprocessImage(imageSource, 1024);
 
   onProgress?.({
     stage: "loading",
-    progress: 10,
-    message: "Memuat model AI...",
+    progress: 15,
+    message: "Menyiapkan mesin AI (GPU Accelerating)...",
   });
 
-  // Use the library with appropriate device backend
-  const resultBlob = await imglyRemoveBackground(processedSource, {
-    model: "isnet",
-    // Force WASM on mobile to avoid WebGL artifacts/OOM
-    device: mobile ? "cpu" : "gpu",
-    output: {
-      format: "image/png",
-      quality: 0.8,
-    },
-    progress: (key: string, current: number, total: number) => {
-      const pct = total > 0 ? Math.round((current / total) * 80) + 10 : 10;
+  try {
+    const config: Config = {
+      model: "isnet_fp16", // Faster half-precision model
+      device: "gpu",       // Re-enable WebGL/WebGPU for speed
+      proxyToWorker: true, // Use multi-threading via worker
+      output: {
+        format: "image/png",
+        quality: 0.8,
+      },
+      progress: (key: string, current: number, total: number) => {
+        const pct = total > 0 ? Math.round((current / total) * 70) + 20 : 20;
 
-      let message = "Memproses...";
-      if (key.includes("fetch") || key.includes("model") || key.includes("download")) {
-        message = "Mengunduh model AI...";
-      } else if (key.includes("inference") || key.includes("compute")) {
-        message = "Menghapus background...";
-      }
+        let message = "Memproses...";
+        if (key.includes("fetch") || key.includes("model") || key.includes("download")) {
+          message = "Mengunduh model AI (Cached)...";
+        } else if (key.includes("inference") || key.includes("compute")) {
+          message = "Menghapus latar belakang...";
+        }
 
+        onProgress?.({
+          stage: "processing",
+          progress: Math.min(pct, 98),
+          message,
+        });
+      },
+    };
+
+    const resultBlob = await imglyRemoveBackground(processedSource, config);
+
+    onProgress?.({
+      stage: "done",
+      progress: 100,
+      message: "Selesai!",
+    });
+
+    return URL.createObjectURL(resultBlob);
+  } catch (error) {
+    console.error("Background removal error:", error);
+
+    // Fallback to CPU if GPU fails (e.g. driver issues)
+    if (error instanceof Error && (error.message.includes("gpu") || error.message.includes("webgl"))) {
       onProgress?.({
         stage: "processing",
-        progress: Math.min(pct, 95),
-        message,
+        progress: 20,
+        message: "Sedang mencoba mode kompatibilitas...",
       });
-    },
-  });
 
-  onProgress?.({
-    stage: "done",
-    progress: 100,
-    message: "Selesai!",
-  });
-
-  return URL.createObjectURL(resultBlob);
+      const resultBlob = await imglyRemoveBackground(processedSource, {
+        model: "isnet_fp16",
+        device: "cpu",
+        output: { format: "image/png" }
+      });
+      return URL.createObjectURL(resultBlob);
+    }
+    throw error;
+  }
 }
