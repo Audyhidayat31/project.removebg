@@ -27,7 +27,7 @@ async function resizeIfNeeded(imageSource: string | File | Blob, maxDim = 1024):
   return new Promise((resolve) => {
     const img = new Image();
     const url = typeof imageSource === "string" ? imageSource : URL.createObjectURL(imageSource);
-    
+
     img.onload = () => {
       if (img.width <= maxDim && img.height <= maxDim) {
         if (typeof imageSource !== "string") URL.revokeObjectURL(url);
@@ -111,7 +111,7 @@ export async function removeBackground(
     },
     progress: (key: string, current: number, total: number) => {
       const pct = total > 0 ? Math.round((current / total) * 80) + 10 : 10;
-      
+
       let message = "Memproses...";
       if (key.includes("fetch") || key.includes("model") || key.includes("download")) {
         message = "Mengunduh model AI...";
