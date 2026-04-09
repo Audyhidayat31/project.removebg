@@ -104,8 +104,7 @@ async function refineEdges(imageBlob: Blob): Promise<string> {
       const height = canvas.height;
 
       // Pass 1: Remove noise — eliminate pixels with very low alpha (stray artifacts)
-      // Increasing threshold to 35 for better cleanup of mobile inference artifacts
-      const alphaThreshold = 35;
+      const alphaThreshold = 20;
       for (let i = 0; i < data.length; i += 4) {
         if (data[i + 3] < alphaThreshold) {
           data[i] = 0;
@@ -173,16 +172,16 @@ async function refineEdges(imageBlob: Blob): Promise<string> {
       for (let i = 0; i < data.length; i += 4) {
         const alpha = data[i + 3];
         if (alpha > 0 && alpha < 255) {
-          if (alpha > 160) { // Slightly lower threshold for opaque
+          if (alpha > 180) { // Standard opaque threshold
             data[i + 3] = 255;
-          } else if (alpha < 60) { // Higher threshold for transparent to catch noise
+          } else if (alpha < 35) { // Slightly aggressive transparent threshold to catch noise
             data[i] = 0;
             data[i + 1] = 0;
             data[i + 2] = 0;
             data[i + 3] = 0;
           } else {
             // Smoothstep sharpening curve
-            const normalized = (alpha - 60) / (160 - 60);
+            const normalized = (alpha - 35) / (180 - 35);
             const sharpened = normalized * normalized * (3 - 2 * normalized);
             data[i + 3] = Math.round(sharpened * 255);
           }
