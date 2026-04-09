@@ -9,9 +9,19 @@ export interface RemovalProgress {
 export type ProgressCallback = (progress: RemovalProgress) => void;
 
 /**
- * Preprocess image: Rezise to a maximum dimension for significantly faster processing.
- * AI inference speed is quadratically related to image resolution.
- * 1024px is a sweet spot for high quality and high speed.
+ * Detect if the current device is a mobile device.
+ * Used to determine the best backend (CPU vs GPU).
+ */
+const isMobile = () => {
+  if (typeof window === "undefined") return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+};
+
+/**
+ * Preprocess image: Rezise to a maximum dimension for stability on mobile devices.
+ * AI models work optimally at around 1024px. This prevents Out-Of-Memory (OOM) errors.
  */
 async function preprocessImage(imageSource: string | File | Blob, maxDim = 1024): Promise<Blob | File | string> {
   if (typeof window === "undefined") return imageSource;
@@ -21,7 +31,7 @@ async function preprocessImage(imageSource: string | File | Blob, maxDim = 1024)
     const url = typeof imageSource === "string" ? imageSource : URL.createObjectURL(imageSource);
 
     img.onload = () => {
-      // If image is already within limits, return original (as Blob/File)
+      // If image is already within safe limits, return original
       if (img.width <= maxDim && img.height <= maxDim) {
         if (typeof imageSource !== "string") URL.revokeObjectURL(url);
         resolve(imageSource);
@@ -46,10 +56,9 @@ async function preprocessImage(imageSource: string | File | Blob, maxDim = 1024)
 
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
+      const ctx = canvas.getContext("2d", { alpha: true });
 
       if (ctx) {
-        // High quality scaling
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, 0, 0, width, height);
@@ -71,13 +80,12 @@ async function preprocessImage(imageSource: string | File | Blob, maxDim = 1024)
 }
 
 /**
- * Optimized Background Removal
+ * High-Stability Background Removal
  * 
- * Performance Enhancements:
- * 1. Pre-resize: Reduces the number of pixels the AI needs to process.
- * 2. Model: uses 'isnet_fp16' (Half-precision) which is ~2x faster than standard 'isnet'.
- * 3. Acceleration: Forced 'gpu' (WebGPU/WebGL) for maximum throughput.
- * 4. Multi-threading/SIMD: Handled by WASM SIMD and WebGPU backends.
+ * Strategy:
+ * 1. Downscale: Resize images to 1024px to prevent OOM on mobile browsers.
+ * 2. Mobile Detection: Force 'cpu' (WASM) on mobile to avoid WebGL artifacts & precision errors.
+ * 3. Desktop: Use 'gpu' (WebGL/WebGPU) for maximum speed.
  */
 export async function removeBackground(
   imageSource: string | File | Blob,
@@ -89,21 +97,22 @@ export async function removeBackground(
     message: "Mengoptimalkan gambar...",
   });
 
-  // Pre-process: Resize to 1024px (High quality) or 800px (Faster)
-  // We use 1024 as default for a good balance.
+  const mobile = isMobile();
+  // Downscale to 1024px for reliable processing
   const processedSource = await preprocessImage(imageSource, 1024);
 
   onProgress?.({
     stage: "loading",
     progress: 15,
-    message: "Menyiapkan mesin AI (GPU Accelerating)...",
+    message: mobile ? "Memulai proses (Safe Mode)..." : "Menyiapkan GPU...",
   });
 
   try {
     const config: Config = {
-      model: "isnet_fp16", // Faster half-precision model
-      device: "gpu",       // Re-enable WebGL/WebGPU for speed
-      proxyToWorker: true, // Use multi-threading via worker
+      model: "isnet_fp16", 
+      // Force CPU on mobile to prevent WebGL artifacts/black images
+      device: mobile ? "cpu" : "gpu",
+      proxyToWorker: true,
       output: {
         format: "image/png",
         quality: 0.8,
@@ -113,7 +122,7 @@ export async function removeBackground(
 
         let message = "Memproses...";
         if (key.includes("fetch") || key.includes("model") || key.includes("download")) {
-          message = "Mengunduh model AI (Cached)...";
+          message = "Mengunduh data AI...";
         } else if (key.includes("inference") || key.includes("compute")) {
           message = "Menghapus latar belakang...";
         }
@@ -138,12 +147,12 @@ export async function removeBackground(
   } catch (error) {
     console.error("Background removal error:", error);
 
-    // Fallback to CPU if GPU fails (e.g. driver issues)
-    if (error instanceof Error && (error.message.includes("gpu") || error.message.includes("webgl"))) {
+    // Final fallback to CPU if anything fails
+    if (error instanceof Error && !mobile) {
       onProgress?.({
         stage: "processing",
         progress: 20,
-        message: "Sedang mencoba mode kompatibilitas...",
+        message: "Mencoba mode kompatibilitas...",
       });
 
       const resultBlob = await imglyRemoveBackground(processedSource, {
