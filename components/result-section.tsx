@@ -12,8 +12,11 @@ interface ResultSectionProps {
   isProcessing: boolean
   progress: RemovalProgress | null
   onReset: () => void
+  onImageUpload: (file: File) => void
   onRemoveBackground: () => void
 }
+
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"]
 
 export function ResultSection({
   originalImage,
@@ -21,11 +24,19 @@ export function ResultSection({
   isProcessing,
   progress,
   onReset,
+  onImageUpload,
   onRemoveBackground,
 }: ResultSectionProps) {
   const [viewMode, setViewMode] = useState<"side-by-side" | "slider">("side-by-side")
   const [sliderPosition, setSliderPosition] = useState(50)
   const [isZoomed, setIsZoomed] = useState(false)
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      onImageUpload(file)
+    }
+  }
 
   const handleDownload = () => {
     if (!processedImage) return
@@ -256,7 +267,7 @@ export function ResultSection({
                 Download PNG
               </button>
               <button
-                onClick={onReset}
+                onClick={() => document.getElementById("result-file-upload")?.click()}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-all duration-300 border border-slate-200"
               >
                 <RefreshCw className="w-5 h-5" />
@@ -265,6 +276,14 @@ export function ResultSection({
             </>
           )}
         </div>
+
+        <input
+          type="file"
+          id="result-file-upload"
+          className="hidden"
+          accept={ALLOWED_TYPES.join(",")}
+          onChange={handleFileInput}
+        />
 
         {/* Zoom Modal */}
         {isZoomed && processedImage && (

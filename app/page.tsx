@@ -106,6 +106,7 @@ export default function Home() {
             isProcessing={isProcessing}
             progress={progress}
             onReset={handleReset}
+            onImageUpload={handleImageUpload}
             onRemoveBackground={handleRemoveBackground}
           />
           
