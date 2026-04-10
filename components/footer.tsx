@@ -3,7 +3,18 @@
 import Link from "next/link"
 import { ImageIcon, Heart, Github, Twitter } from "lucide-react"
 
-export function Footer() {
+interface FooterProps {
+  onStartFree?: () => void;
+}
+
+export function Footer({ onStartFree }: FooterProps) {
+  const handleClick = (e: React.MouseEvent) => {
+    if (onStartFree) {
+      e.preventDefault()
+      onStartFree()
+    }
+  }
+
   return (
     <footer className="relative overflow-hidden">
       {/* Top divider */}
@@ -21,6 +32,7 @@ export function Footer() {
             </p>
             <Link
               href="#upload"
+              onClick={handleClick}
               className="cta-button text-base px-8 py-3.5 inline-flex items-center gap-2"
             >
               Coba Sekarang — Gratis

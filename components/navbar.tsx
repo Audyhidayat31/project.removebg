@@ -4,7 +4,11 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ImageIcon, Menu, X } from "lucide-react"
 
-export function Navbar() {
+interface NavbarProps {
+  onStartFree?: () => void;
+}
+
+export function Navbar({ onStartFree }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -15,6 +19,14 @@ export function Navbar() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  const handleClickMulaiGratis = (e: React.MouseEvent) => {
+    if (onStartFree) {
+      e.preventDefault()
+      onStartFree()
+      setMobileMenuOpen(false)
+    }
+  }
 
   return (
     <nav
@@ -53,6 +65,7 @@ export function Navbar() {
           </Link>
           <Link
             href="#upload"
+            onClick={handleClickMulaiGratis}
             className="cta-button text-sm px-5 py-2.5 inline-flex items-center gap-2"
           >
             Mulai Gratis
@@ -89,7 +102,7 @@ export function Navbar() {
             </Link>
             <Link
               href="#upload"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={handleClickMulaiGratis}
               className="cta-button text-sm px-5 py-2.5 text-center"
             >
               Mulai Gratis

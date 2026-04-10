@@ -63,9 +63,31 @@ export default function Home() {
     setProgress(null)
   }, [])
 
+  const handleStartFree = useCallback(() => {
+    if (originalImage) {
+      handleReset()
+      // Give React a frame to re-render HeroUploadSection
+      setTimeout(() => {
+        const element = document.getElementById("upload")
+        element?.scrollIntoView({ behavior: "smooth" })
+        // After scroll, trigger file picker
+        setTimeout(() => {
+          document.getElementById("file-upload")?.click()
+        }, 600)
+      }, 100)
+    } else {
+      const element = document.getElementById("upload")
+      element?.scrollIntoView({ behavior: "smooth" })
+      // Trigger file picker
+      setTimeout(() => {
+        document.getElementById("file-upload")?.click()
+      }, 600)
+    }
+  }, [originalImage, handleReset])
+
   return (
     <main className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar onStartFree={handleStartFree} />
       
       {!originalImage ? (
         <>
@@ -97,7 +119,7 @@ export default function Home() {
         </div>
       )}
       
-      <Footer />
+      <Footer onStartFree={handleStartFree} />
     </main>
   )
 }
