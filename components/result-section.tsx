@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Download, RefreshCw, ZoomIn, X, Layers } from "lucide-react"
+import { Download, RefreshCw, ZoomIn, X, Layers, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { RemovalProgress } from "@/lib/background-removal"
 
@@ -48,15 +48,26 @@ export function ResultSection({
   if (!originalImage) return null
 
   return (
-    <section className="py-16 px-6">
+    <section className="py-16 px-6 animate-in fade-in duration-700">
       <div className="max-w-4xl mx-auto">
+        {/* Back Button */}
+        <button
+          onClick={onReset}
+          className="group flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors mb-8"
+        >
+          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-slate-200 transition-all">
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+          </div>
+          <span className="font-medium">Kembali</span>
+        </button>
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-sm text-blue-600 font-medium mb-4">
             <Layers className="w-4 h-4" />
             Preview Hasil
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
             Hasil Penghapusan Background
           </h2>
         </div>
